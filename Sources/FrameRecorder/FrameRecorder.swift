@@ -48,7 +48,7 @@ public final class FrameRecorder {
         state = .idle
         recorderQueue = DispatchQueue(label: "se.apparata.RecorderQueue")
     }
-        
+            
     // MARK: - Record
     
     /// Starts recording the video.
@@ -154,35 +154,39 @@ public final class FrameRecorder {
         
         input.requestMediaDataWhenReady(on: self.recorderQueue, using: { [weak self] in
             
-            guard let delegate = self?.delegate else {
+            guard let self = self else {
                 return
             }
             
-            if self?.state == .cancelled {
-                self?.cancelRecording(completion: completion)
+            guard let delegate = self.delegate else {
                 return
             }
             
-            guard delegate.frameRecorderShouldRecordFrame(frame) else {
-                self?.finishRecording(completion: completion)
+            if self.state == .cancelled {
+                self.cancelRecording(completion: completion)
                 return
             }
             
-            if self?.input?.isReadyForMoreMediaData ?? false {
+            guard delegate.frameRecorder(self, shouldRecordFrame: frame) else {
+                self.finishRecording(completion: completion)
+                return
+            }
+            
+            if self.input?.isReadyForMoreMediaData ?? false {
                 
                 guard let pool = pixelBufferAdaptor.pixelBufferPool else {
                     return
                 }
                 
                 let time = frameDuration * CFTimeInterval(frame)
-                let image = delegate.frameRecorderRequestImageForFrame(frame, at: time)
+                let image = delegate.frameRecorder(self, requestImageForFrame: frame, at: time)
                 
                 do {
                     let pixelBuffer = try PixelBuffer.make(of: size, from: image, pool: pool)
                     let presentationTime = CMTimeMultiply(framePresentationDuration, multiplier: Int32(frame))
                     pixelBufferAdaptor.append(pixelBuffer, withPresentationTime: presentationTime)
 
-                    delegate.frameRecorderDidRecordFrame(frame, at: time, image: image)
+                    delegate.frameRecorder(self, didRecordFrame: frame, at: time, image: image)
                 } catch {
                     dump(error)
                 }
