@@ -50,7 +50,9 @@ public final class FrameRecorder {
     private var assetWriter: AVAssetWriter!
     private var input: AVAssetWriterInput!
     
-    public init() {
+    public init(size: CGSize = defaultVideoSize, fps: Int = defaultVideoFPS) {
+        self.fps = fps
+        self.size = size
         state = .idle
         recorderQueue = DispatchQueue(label: "se.apparata.RecorderQueue")
     }
@@ -69,10 +71,7 @@ public final class FrameRecorder {
     ///   - size: The video frame size in pixels. Defaults to 1280x720
     ///   - fps: Frames per second. Defaults to 60.
     ///   - completion: Called from main thread when recording ends, is cancelled, or fails.
-    public func record(to url: URL,
-                       size: CGSize = defaultVideoSize,
-                       fps: Int = defaultVideoFPS,
-                       completion: @escaping (Result<URL, Error>) -> Void) {
+    public func record(to url: URL, completion: @escaping (Result<URL, Error>) -> Void) {
         
         guard state == .idle else {
             if state == .cancelled {
@@ -93,8 +92,8 @@ public final class FrameRecorder {
             }
             return
         }
-        
-        recorderQueue.async {
+                
+        recorderQueue.async { [size, fps] in
             self.recordOnRecorderQueue(to: url, size: size, fps: fps, completion: completion)
         }
     }
