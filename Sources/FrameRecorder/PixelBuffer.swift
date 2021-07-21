@@ -4,7 +4,12 @@
 
 import Foundation
 import AVFoundation
+#if canImport(UIKit)
 import UIKit
+#endif
+#if canImport(AppKit)
+import AppKit
+#endif
 
 enum PixelBufferError: Error {
     case failedToAccessCGImage
@@ -14,11 +19,17 @@ enum PixelBufferError: Error {
 
 class PixelBuffer {
     
-    static func make(of size: CGSize, from image: UIImage, pool: CVPixelBufferPool) throws -> CVPixelBuffer {
+    static func make(of size: CGSize, from image: NSUIImage, pool: CVPixelBufferPool) throws -> CVPixelBuffer {
         
+        #if os(macOS)
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            throw PixelBufferError.failedToAccessCGImage
+        }
+        #else
         guard let cgImage = image.cgImage else {
             throw PixelBufferError.failedToAccessCGImage
         }
+        #endif
 
         let pixelBuffer = try makeCVPixelBuffer(pool: pool)
                 
