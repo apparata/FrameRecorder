@@ -17,6 +17,9 @@ import AppKit
 /// **NOTE:** The video recorder is a one-shot instance. A new instance is required to record a new video.
 ///
 public final class FrameRecorder {
+    
+    public static let defaultVideoFPS = Int(60)
+    public static let defaultVideoSize = CGSize(width: 1280, height: 720)
 
     public enum State {
         
@@ -39,6 +42,9 @@ public final class FrameRecorder {
     public private(set) var state: State
     
     public weak var delegate: FrameRecorderDelegate?
+    
+    public private(set) var fps: Int = defaultVideoFPS
+    public private(set) var size: CGSize = defaultVideoSize
     
     private let recorderQueue: DispatchQueue
     private var assetWriter: AVAssetWriter!
@@ -64,10 +70,10 @@ public final class FrameRecorder {
     ///   - fps: Frames per second. Defaults to 60.
     ///   - completion: Called from main thread when recording ends, is cancelled, or fails.
     public func record(to url: URL,
-                       size: CGSize = CGSize(width: 1280, height: 720),
-                       fps: Int = 60,
+                       size: CGSize = defaultVideoSize,
+                       fps: Int = defaultVideoFPS,
                        completion: @escaping (Result<URL, Error>) -> Void) {
-
+        
         guard state == .idle else {
             if state == .cancelled {
                 DispatchQueue.main.async {
@@ -87,7 +93,7 @@ public final class FrameRecorder {
             }
             return
         }
-                
+        
         recorderQueue.async {
             self.recordOnRecorderQueue(to: url, size: size, fps: fps, completion: completion)
         }
