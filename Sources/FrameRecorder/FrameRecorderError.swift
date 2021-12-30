@@ -5,9 +5,8 @@
 import Foundation
 
 public enum FrameRecorderError: Error {
-    case recordingCancelled
     case recordingAlreadyStarted
-    case delegateNotSet
-    case failedToStartWritingVideo
+    case failedToStartWritingVideo(Error?)
     case failedToFinishRecordingVideo
+    case unexpected
 }
