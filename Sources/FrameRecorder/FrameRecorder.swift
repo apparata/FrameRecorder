@@ -10,7 +10,6 @@ import Foundation
 ///
 /// **NOTE:** The frame recorder is a one-shot instance. A new instance is required to record a new video.
 ///
-@FrameRecorderActor
 public final class FrameRecorder {
     
     public enum State {
@@ -70,6 +69,7 @@ public final class FrameRecorder {
     ///   - url: The file URL to write the video to. If a file already exists, it will be overwritten.
     ///   - frames: An asynchronous stream of images two write to the video.
     ///
+    @FrameRecorderActor
     public func record(to url: URL, frames: FrameProvider) async throws {
         
         if Task.isCancelled || state == .cancelled {
@@ -86,8 +86,12 @@ public final class FrameRecorder {
         session = FrameRecorderSession(url: url, size: frameSize, fps: framesPerSecond)
         
         do {
-            try await session?.record(frames: frames)
-            state = .ended
+            try await withTaskCancellationHandler {
+                session?.cancel()
+            } operation: {
+                try await session?.record(frames: frames)
+                state = .ended
+            }
         } catch let cancellation as CancellationError {
             state = .cancelled
             removeVideo(at: url)
@@ -99,6 +103,7 @@ public final class FrameRecorder {
         }
     }
     
+    @FrameRecorderActor
     private func removeVideo(at url: URL) {
         do {
             try FileManager.default.removeItem(at: url)

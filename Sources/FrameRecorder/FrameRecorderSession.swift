@@ -11,7 +11,6 @@ import UIKit
 import AppKit
 #endif
 
-@FrameRecorderActor
 internal final class FrameRecorderSession {
     
     private enum ProcessingStatus {
@@ -27,6 +26,8 @@ internal final class FrameRecorderSession {
             frame += 1
         }
     }
+    
+    private var isCancelled: Bool = false
     
     private let recorderQueue: DispatchQueue
     private var assetWriter: AVAssetWriter!
@@ -55,8 +56,15 @@ internal final class FrameRecorderSession {
         recorderQueue = DispatchQueue(label: "se.apparata.FrameRecorderQueue")
     }
     
+    // MARK: - Cancel
+    
+    internal func cancel() {
+        isCancelled = true
+    }
+    
     // MARK: - Record
     
+    @FrameRecorderActor
     internal func record(frames: FrameProvider) async throws {
         try prepareForWritingVideoFile()
         
@@ -105,7 +113,9 @@ internal final class FrameRecorderSession {
             throw FrameRecorderError.unexpected
         }
         
-        try Task.checkCancellation()
+        if isCancelled {
+            throw CancellationError()
+        }
                 
         while input.isReadyForMoreMediaData {
 
@@ -119,8 +129,10 @@ internal final class FrameRecorderSession {
             let presentationTime = CMTimeMultiply(framePresentationDuration, multiplier: Int32(context.frame))
             pixelBufferAdaptor.append(pixelBuffer, withPresentationTime: presentationTime)
                         
-            try Task.checkCancellation()
-            
+            if isCancelled {
+                throw CancellationError()
+            }
+
             context.advanceFrame()
         }
         
