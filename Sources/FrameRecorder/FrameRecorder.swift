@@ -87,10 +87,10 @@ public final class FrameRecorder {
         
         do {
             try await withTaskCancellationHandler {
-                session?.cancel()
-            } operation: {
                 try await session?.record(frames: frames)
                 state = .ended
+            } onCancel: {
+                session?.cancel()
             }
         } catch let cancellation as CancellationError {
             state = .cancelled
